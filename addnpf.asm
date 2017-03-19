@@ -1,7 +1,16 @@
 !Alejandra Rodriguez Sanchez Ing. Computacion
 	.begin
+	.macro push arg
+		addcc %r14, -4, %r14
+		st arg, %r14	
+	.endmacro
+	.macro pop arg
+		ld [%r14], arg
+		addcc %r14, 4, %r14
+	.endmacro
 	.org 2048
-main:	ld [x], %r1  		!carga de operando 1
+main:	ld [stack], %r14
+	ld [x], %r1  		!carga de operando 1
 	ld [y], %r2		!carga de operando 2
 	ld [mase], %r3		!carga de mascara para exponente
 	ld [masm], %r4		!carga de mascara para mantiza
@@ -23,22 +32,32 @@ main:	ld [x], %r1  		!carga de operando 1
 	addcc %r9,%r12,%r13	!diferencia de exponentes, exp2-exp1
 	bneg diferencia2	!salta si el resultado de la resta es negativo
 	srl %r10, %r13, %r10	!corrimiento de la mantiza, op1	
+	orcc %r9, %r0, %r21
 	addcc %r17, %r6, %r0	!identificacion del signo del op1
 	be op1nega		!salta si el signo del op1 es negativo
 	addcc %r17, %r7, %r0	!identificacion del signo del op2
 	be op2nega		!salta si el signo del op2 es negativo 
 	addcc %r10, %r11, %r18	!suma de mantizas
+	push %r15
+	push %r18
+	call norma
+	pop %r15
 	jmpl %r15+4, %r0	!return
 diferencia2:  			
 	orncc %r0,%r9,%r12 	!complemento a 1 del exponente del op2
 	addcc %r12, 1, %r12	!complemento a 2 del exponente del op2 
 	addcc %r8, %r12, %r13	!diferencia de exponentes, exp1-exp2
 	srl %r11, %r13, %r11	!corrimiento de la mantiza, op2
+	orcc %r8, %r0, %r21
 	addcc %r17, %r6, %r0	!identificacion del signo del op1
 	be op1nega		!salta si el signo del op1 es negativo
 	addcc %r17, %r7, %r0	!identificacion del signo del op2
 	be op2nega		!salta si el signo del op2 es negativo 
 	addcc %r10, %r11, %r18	!suma de mantizas
+	push %r15
+	push %r18
+	call norma
+	pop %r15
 	jmpl %r15+4, %r0	!return 
 op1nega:
 	orncc %r0, %r10, %r10	!mantiza del op1 en complemento a 1
@@ -47,18 +66,34 @@ op1nega:
 	addcc %r17, %r7, %r0	!identificacion de signo del op2
 	be op2nega		!salta si el signo del op2 es negativo
 	addcc %r10,%r11,%r18	!suma de mantizas
+	push %r15
+	push %r18
+	call norma
+	pop %r15
 	jmpl %r15+4, %r0	!return 
 op2nega:
 	orncc %r0, %r11, %r11	!mantiza del op2 en complemento a 1
 	addcc %r11, 1, %r11	!mantiza del op2 en complemento a 2
 	orcc %r16, %r11, %r11 	!extencion de signo
 	addcc %r10, %r11, %r18	!suma de mantizas
-	jmpl %r15+4, %r0	!return 
+	push %r15
+	push %r18
+	call norma
+	pop %r15
+	jmpl %r15+4, %r0	!return
+norma:
+	pop %r19
+	srl %r19, 31, %r20
+	addcc %r17, %r20, %r0
+	!sll %r21, 23, %r22
+ 	jmpl %r15+4, %r0	!return
+
 	x: 0x40A00000
 	y: 0xBF400000
 	mase: 0x7F800000
 	masm: 0x007FFFFF
 	biti: 0x00800000
 	sig: 0xFFFFFFFF
-	nega: 0xFF000000 	
+	nega: 0xFF000000
+	stack: 0  	
 	.end
