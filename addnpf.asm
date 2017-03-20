@@ -32,32 +32,32 @@ main:	ld [stack], %r14
 	addcc %r9,%r12,%r13	!diferencia de exponentes, exp2-exp1
 	bneg diferencia2	!salta si el resultado de la resta es negativo
 	srl %r10, %r13, %r10	!corrimiento de la mantiza, op1	
-	orcc %r9, %r0, %r21
+	orcc %r9, %r0, %r21	!coloca en el reg 21 el exponente que sera empaquetado
 	addcc %r17, %r6, %r0	!identificacion del signo del op1
 	be op1nega		!salta si el signo del op1 es negativo
 	addcc %r17, %r7, %r0	!identificacion del signo del op2
 	be op2nega		!salta si el signo del op2 es negativo 
 	addcc %r10, %r11, %r18	!suma de mantizas
-	push %r15
-	push %r18
-	call norma
-	pop %r15
+	push %r15		!almacena en la pila el valor pc
+	push %r18		!almacena en la pila el resultado de la suma
+	call normal		!llama a la subrutina para normalizar
+	pop %r15		!recupera el pc
 	jmpl %r15+4, %r0	!return
 diferencia2:  			
 	orncc %r0,%r9,%r12 	!complemento a 1 del exponente del op2
 	addcc %r12, 1, %r12	!complemento a 2 del exponente del op2 
 	addcc %r8, %r12, %r13	!diferencia de exponentes, exp1-exp2
 	srl %r11, %r13, %r11	!corrimiento de la mantiza, op2
-	orcc %r8, %r0, %r21
+	orcc %r8, %r0, %r21	!coloca en el reg 21 el exponente que sera empaquetado 
 	addcc %r17, %r6, %r0	!identificacion del signo del op1
 	be op1nega		!salta si el signo del op1 es negativo
 	addcc %r17, %r7, %r0	!identificacion del signo del op2
 	be op2nega		!salta si el signo del op2 es negativo 
 	addcc %r10, %r11, %r18	!suma de mantizas
-	push %r15
-	push %r18
-	call norma
-	pop %r15
+	push %r15		!almacena en la pila el valor del pc 
+	push %r18		!almacena en la pila el resultado de la suma
+	call normal		!llama a la subrutina para normalizar 
+	pop %r15		!recupera el pc
 	jmpl %r15+4, %r0	!return 
 op1nega:
 	orncc %r0, %r10, %r10	!mantiza del op1 en complemento a 1
@@ -66,30 +66,67 @@ op1nega:
 	addcc %r17, %r7, %r0	!identificacion de signo del op2
 	be op2nega		!salta si el signo del op2 es negativo
 	addcc %r10,%r11,%r18	!suma de mantizas
-	push %r15
-	push %r18
-	call norma
-	pop %r15
+	push %r15		!almacena en la pila el valor del pc 
+	push %r18		!almacena en la pila el resultado de la suma
+	call normal		!llama a la subrutina para normalizar
+	pop %r15		!recupera el pc
 	jmpl %r15+4, %r0	!return 
 op2nega:
 	orncc %r0, %r11, %r11	!mantiza del op2 en complemento a 1
 	addcc %r11, 1, %r11	!mantiza del op2 en complemento a 2
 	orcc %r16, %r11, %r11 	!extencion de signo
 	addcc %r10, %r11, %r18	!suma de mantizas
-	push %r15
-	push %r18
-	call norma
-	pop %r15
+	push %r15		!almacena en la pila el valor del pc
+	push %r18		!almacena en la pila el resultado de la suma
+	call normal		!llama a la subrutina para normalizar
+	pop %r15		!recupera el pc
 	jmpl %r15+4, %r0	!return
-norma:
-	pop %r19
-	srl %r19, 31, %r20
-	addcc %r17, %r20, %r0
-	!sll %r21, 23, %r22
+normal:
+	pop %r19		!sacar de la pila la suma
+	srl %r19, 24, %r20	!extraer el signo de la suma
+	andcc %r0, %r22, %r22	!cargar un 0 en el reg 22
+	orcc %r22, 24, %r22	!cargar un 24 en el reg 22
+	orncc %r0, %r22, %r22	!complemento a 1 del 24
+	addcc %r22, 1, %r22	!complemento a 2 del 24
+	ba prueba		!inicio del ciclo
+si:	addcc %r21, %r21, %r21	!corrimiento del exponente a la izq
+prueba:	addcc %r22, 1, %r22	!condicion
+	bneg si			!salto al inicio del ciclo
+	addcc %r17, %r20, %r0	!identifica si el signo de la suma es negativo
+	be signega		!salta si la suma es negativa
+	andcc %r0, %r22, %r22	!cargar un 0 en el reg 22
+	orcc %r22, 32, %r22	!cargar un 32 en el reg 22
+	orncc %r0, %r22, %r22	!complemento a 1 del 32
+	addcc %r22, 1, %r22	!complemento a 2 del 32
+	ba prueba1		!inicio del ciclo
+si1:	addcc %r20, %r20, %r20	!corrimiento del exponente a la izq
+prueba1:addcc %r22, 1, %r22	!condicion
+	bneg si1		!salto al inicio del ciclo
+	orcc %r20, %r21, %r21	!une el signo y el exponente
+	andcc %r4, %r19, %r23	!extrae la mantiza que sera empaquetada
+	orcc %r21, %r23, %r24	!numero empaquetado
+	st %r24, [z]		!lleva a la memoria el numero empaquetado
+	jmpl %r15+4, %r0	!return
+signega: 
+	andcc %r0, %r22, %r22	!cargar un 0 en el reg 22
+	orcc %r22, 32, %r22	!cargar un 31 en el reg 22
+	orncc %r0, %r22, %r22	!complemento a 1 del 31
+	addcc %r22, 1, %r22	!complemento a 2 del 31
+	ba prueba2		!inicio del ciclo
+si2:	addcc %r20, %r20, %r20	!corrimiento del exponente a la izq
+prueba2:addcc %r22, 1, %r22	!condicion
+	bneg si2		!salto al inicio del ciclo
+	orcc %r20, %r21, %r21	!une el signo con el exponente
+	andcc %r4, %r19, %r23	!extrae la mantiza 
+	orncc %r0, %r23, %r23	!mantiza en complemento a 1
+	addcc %r23, 1, %r23	!mantiza en complemento a 2
+	orcc %r21, %r23, %r24	!numero empaquetado
+	st %r24, [z]		!lleva a la memoria el numero empaquetado  
  	jmpl %r15+4, %r0	!return
 
 	x: 0x40A00000
 	y: 0xBF400000
+	z: 0
 	mase: 0x7F800000
 	masm: 0x007FFFFF
 	biti: 0x00800000
