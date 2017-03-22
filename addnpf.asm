@@ -37,11 +37,15 @@ main:	ld [stack], %r14
 	be op1nega		!salta si el signo del op1 es negativo
 	addcc %r17, %r7, %r0	!identificacion del signo del op2
 	be op2nega		!salta si el signo del op2 es negativo 
-	addcc %r10, %r11, %r18	!suma de mantizas
 	push %r15		!almacena en la pila el valor pc
-	push %r18		!almacena en la pila el resultado de la suma
-	call normal		!llama a la subrutina para normalizar
+	push %r10		!almacena en memoria el valor de la mantiza del op1
+	push %r11		!almacena en memoria el valor de la mantiza del op2
+	call sumnorma		!llamada a subrutina para hacer la suma y normalizarla
+	pop %r18		!recupera el resultado de la suma
 	pop %r15		!recupera el pc
+	push %r15		!almacena el valor del pc en la pila
+	call empaque		!llamada a subrutina para empaquetar el numero
+	pop %r15		!recupera el valor del pc
 	jmpl %r15+4, %r0	!return
 diferencia2:  			
 	orncc %r0,%r9,%r12 	!complemento a 1 del exponente del op2
@@ -53,11 +57,15 @@ diferencia2:
 	be op1nega		!salta si el signo del op1 es negativo
 	addcc %r17, %r7, %r0	!identificacion del signo del op2
 	be op2nega		!salta si el signo del op2 es negativo 
-	addcc %r10, %r11, %r18	!suma de mantizas
 	push %r15		!almacena en la pila el valor del pc 
-	push %r18		!almacena en la pila el resultado de la suma
-	call normal		!llama a la subrutina para normalizar 
+	push %r10		!almacena en memoria el valor de la mantiza del op1	
+	push %r11		!almacena en memoria el valor de la mantiza del op2
+	call sumnorma		!llamada a subrutina para hacer la suma y normalizarla
+	pop %r18		!recupera el resultado de la suma
 	pop %r15		!recupera el pc
+	push %r15		!almacena el valor del pc en la pila
+	call empaque		!llamada a subrutina para empaquetar el numero
+	pop %r15		!recupera el valor del pc
 	jmpl %r15+4, %r0	!return 
 op1nega:
 	orncc %r0, %r10, %r10	!mantiza del op1 en complemento a 1
@@ -65,25 +73,82 @@ op1nega:
 	orcc %r16, %r10,%r10	!extencion de signo 
 	addcc %r17, %r7, %r0	!identificacion de signo del op2
 	be op2nega		!salta si el signo del op2 es negativo
-	addcc %r10,%r11,%r18	!suma de mantizas
 	push %r15		!almacena en la pila el valor del pc 
-	push %r18		!almacena en la pila el resultado de la suma
-	call normal		!llama a la subrutina para normalizar
+	push %r10		!almacena en memoria el valor de la mantiza del op1
+	push %r11		!almacena en memoria el valor de la mantiza del op2
+	call sumnorma		!llamada a subrutina para hacer la suma y normalizarla
+	pop %r18		!recupera el resultado de la suma
 	pop %r15		!recupera el pc
-	jmpl %r15+4, %r0	!return 
+	push %r15		!almacena el valor del pc en la pila
+	call empaque		!llamada a subrutina para empaquetar el numero
+	pop %r15		!recupera el valor del pc
+        jmpl %r15+4, %r0	!return 
 op2nega:
 	orncc %r0, %r11, %r11	!mantiza del op2 en complemento a 1
 	addcc %r11, 1, %r11	!mantiza del op2 en complemento a 2
 	orcc %r16, %r11, %r11 	!extencion de signo
-	addcc %r10, %r11, %r18	!suma de mantizas
 	push %r15		!almacena en la pila el valor del pc
-	push %r18		!almacena en la pila el resultado de la suma
-	call normal		!llama a la subrutina para normalizar
+	push %r10		!almacena en memoria el valor de la mantiza del op1
+	push %r11		!almacena en memoria el valor de la mantiza del op2
+	call sumnorma		!llamada a subrutina para hacer la suma y normalizarla
+	pop %r18		!recupera el resultado de la suma
 	pop %r15		!recupera el pc
+	push %r15		!almacena el valor del pc en la pila
+	call empaque		!llamada a subrutina para empaquetar el numero
+	pop %r15		!recupera el valor del pc
 	jmpl %r15+4, %r0	!return
-normal:
-	pop %r19		!sacar de la pila la suma
-	srl %r19, 24, %r20	!extraer el signo de la suma
+sumnorma:
+	pop %r19		!recupera la mantiza del op2
+	pop %r20		!recupera la mantiza del op1
+	ld [identi], %r23	!carga el valor para identificar el bit implicito
+	ld [redon], %r24	!carga el valor para verificar la posicion del bit implicito
+	andcc %r0,%r22,%r22	!coloca un 0 en el registro 22
+	addcc %r19, %r20, %r25	!suma de mantizas
+	bneg negativo		!salta si es negativo
+	andcc %r0, %r28, %r28	!coloca un 0 en el registro 28
+verifica:
+	andcc %r25,%r23,%r26	!localiza el bit implicito 
+	orncc %r0,%r26,%r26	!complemento a 1 del resultado anterior 
+	addcc %r26, 1, %r26	!complemnto a 2
+	addcc %r26, %r24, %r26	!resta para identificar si el bit implicito esta en su lugar
+	be salirder		!salta si esta normalizada 
+	addcc %r22, 1, %r22	!incrementa el valor del reg 22 para recorrer el exponente 
+	orncc %r0, %r22, %r27	!complemento a 1 del valor del reg 22
+	addcc %r27, 1, %r27	!complemento a 2 del valor del reg 22
+	addcc %r27, 8, %r27	!resta del reg 22 con 8, numero maximo de corrimientos
+	be menor		!salta si llego al numero maximo
+	srl %r25, 1, %r25	!recorre el resultado de la suma 
+	ba verifica		!salta y vuelve a verificar
+	jmpl %r15+4, %r0	!return
+negativo:
+	orncc %r0,%r25,%r25	!complemento a 1 del resultado de la suma
+	addcc %r25, 1, %r25	!complemento a 2 del resultado de la suma
+	ld [resn], %r28		!carga el valor del signo en el reg 28
+	ba verifica		!verifica si esta normalizado
+menor:
+	andcc %r0,%r22,%r22	!coloca un 0 en el reg 22
+	addcc %r19,%r20,%r25	!suma las mantizas
+verifica1:	
+	andcc %r25,%r23,%r26	!localiza el bit implicito
+	orncc %r0,%r26,%r26	!complemento a 1 del resultado anterior
+	addcc %r26, 1, %r26	!complemento a 2 del resultado anterior
+	addcc %r26, %r24,%r26	!resta para identificar si el bit implicito esta en su lugar
+	be salirizq		!salta si ya esta normalizado
+	addcc %r22, 1, %r22	!incremento el valor del reg 22
+	addcc %r25, %r25, %r25	!corrimiento a la izquierda del resultado
+	ba verifica1		!salta y vuelve a verificar
+	jmpl %r15+4, %r0	!return
+salirder:
+	push %r25		!almacena en la pila el valor de la mantiza normalizada
+	addcc %r21, %r22, %r21	!normaliza el exponente
+	jmpl %r15+4, %r0	!return
+salirizq:
+	push %r25		!almacena en la pila el valor del la mantiza normalizada
+	orncc %r0, %r22, %r22	!complemento a 1 del reg 22
+	addcc %r22, 1, %r22	!complemento a 2 del reg 22
+	addcc %r21, %r22, %r21	!normaliza el exponente
+	jmpl %r15+4, %r0	!return
+empaque:
 	andcc %r0, %r22, %r22	!cargar un 0 en el reg 22
 	orcc %r22, 24, %r22	!cargar un 24 en el reg 22
 	orncc %r0, %r22, %r22	!complemento a 1 del 24
@@ -92,45 +157,23 @@ normal:
 si:	addcc %r21, %r21, %r21	!corrimiento del exponente a la izq
 prueba:	addcc %r22, 1, %r22	!condicion
 	bneg si			!salto al inicio del ciclo
-	addcc %r17, %r20, %r0	!identifica si el signo de la suma es negativo
-	be signega		!salta si la suma es negativa
-	andcc %r0, %r22, %r22	!cargar un 0 en el reg 22
-	orcc %r22, 32, %r22	!cargar un 32 en el reg 22
-	orncc %r0, %r22, %r22	!complemento a 1 del 32
-	addcc %r22, 1, %r22	!complemento a 2 del 32
-	ba prueba1		!inicio del ciclo
-si1:	addcc %r20, %r20, %r20	!corrimiento del exponente a la izq
-prueba1:addcc %r22, 1, %r22	!condicion
-	bneg si1		!salto al inicio del ciclo
-	orcc %r20, %r21, %r21	!une el signo y el exponente
-	andcc %r4, %r19, %r23	!extrae la mantiza que sera empaquetada
-	orcc %r21, %r23, %r24	!numero empaquetado
-	st %r24, [z]		!lleva a la memoria el numero empaquetado
+	orcc %r28, %r21, %r28	!union del signo con el exponente
+	andcc %r18, %r4, %r18	!extraccion de la mantiza resultante de la suma
+	orcc %r28, %r18, %r28	!union del signo, exponente y mantiza. Numero empaquetado
+	st %r28, [z]		!carga en la memoria el numero empaquetado
 	jmpl %r15+4, %r0	!return
-signega: 
-	andcc %r0, %r22, %r22	!cargar un 0 en el reg 22
-	orcc %r22, 32, %r22	!cargar un 31 en el reg 22
-	orncc %r0, %r22, %r22	!complemento a 1 del 31
-	addcc %r22, 1, %r22	!complemento a 2 del 31
-	ba prueba2		!inicio del ciclo
-si2:	addcc %r20, %r20, %r20	!corrimiento del exponente a la izq
-prueba2:addcc %r22, 1, %r22	!condicion
-	bneg si2		!salto al inicio del ciclo
-	orcc %r20, %r21, %r21	!une el signo con el exponente
-	andcc %r4, %r19, %r23	!extrae la mantiza 
-	orncc %r0, %r23, %r23	!mantiza en complemento a 1
-	addcc %r23, 1, %r23	!mantiza en complemento a 2
-	orcc %r21, %r23, %r24	!numero empaquetado
-	st %r24, [z]		!lleva a la memoria el numero empaquetado  
- 	jmpl %r15+4, %r0	!return
 
-	x: 0x40A00000
-	y: 0xBF400000
+!!! En memoria
+	x: 0x3F800000
+	y: 0x3F800000
 	z: 0
 	mase: 0x7F800000
 	masm: 0x007FFFFF
 	biti: 0x00800000
 	sig: 0xFFFFFFFF
 	nega: 0xFF000000
+	identi: 0x01800000
+	redon: 0x00800000
+	resn: 0x80000000
 	stack: 0  	
 	.end
