@@ -1,0 +1,186 @@
+main:	ld [stack], %r14
+	ld [x], %r1  		!carga de operando 1
+	ld [y], %r2		!carga de operando 2
+	ld [mase], %r3		!carga de mascara para exponente
+	ld [masm], %r4		!carga de mascara para mantiza
+	ld [biti], %r5		!carga de mascara para bit implicito
+	srl %r1, 31, %r6	!separacion de signo, op1
+	srl %r2, 31, %r7	!separacion de signo, op2
+	andcc %r3, %r1, %r8	!separacion del exponente, op1
+	srl %r8, 23, %r8	!colocacion del exponente en la parte mas baja
+	andcc %r3, %r2, %r9	!separacion del exponente, op2
+	srl %r9, 23, %r9	!colocacion del exponente en la parte mas baja
+	andcc %r4, %r1, %r10	!separacion de la mantiza, op1
+	orcc %r10, %r5, %r10	!clocacion del bit implicito
+	andcc %r4, %r2, %r11	!separacion de la mantiza, op2
+	orcc %r11, %r5, %r11	!colocacion del bit implicito
+	orncc %r0,%r8, %r12	!complemento a 1 del exponente del op1 
+	addcc %r12, 1, %r12	!complemento a 2 del exponente del op1 
+	ld [nega], %r16		!carga los 8 bits correspondientes al signo extendido
+	ld [sig], %r17		!carga un -1 para identificar si algun operando es negativo
+	addcc %r9,%r12,%r13	!diferencia de exponentes, exp2-exp1
+	bneg diferencia2	!salta si el resultado de la resta es negativo
+	srl %r10, %r13, %r10	!corrimiento de la mantiza, op1	
+	orcc %r9, %r0, %r21	!coloca en el reg 21 el exponente que sera empaquetado
+	addcc %r17, %r6, %r0	!identificacion del signo del op1
+	be op1nega		!salta si el signo del op1 es negativo
+	addcc %r17, %r7, %r0	!identificacion del signo del op2
+	be op2nega		!salta si el signo del op2 es negativo 
+		addcc %r14, -4, %r14
+		st %r15, %r14	
+		addcc %r14, -4, %r14
+		st %r10, %r14	
+		addcc %r14, -4, %r14
+		st %r11, %r14	
+	call sumnorma		!llamada a subrutina para hacer la suma y normalizarla
+		ld [%r14], %r18
+		addcc %r14, 4, %r14
+		ld [%r14], %r15
+		addcc %r14, 4, %r14
+		addcc %r14, -4, %r14
+		st %r15, %r14	
+	call empaque		!llamada a subrutina para empaquetar el numero
+		ld [%r14], %r15
+		addcc %r14, 4, %r14
+	jmpl %r15+4, %r0	!return
+diferencia2: 	orncc %r0,%r9,%r12 	!complemento a 1 del exponente del op2
+	addcc %r12, 1, %r12	!complemento a 2 del exponente del op2 
+	addcc %r8, %r12, %r13	!diferencia de exponentes, exp1-exp2
+	srl %r11, %r13, %r11	!corrimiento de la mantiza, op2
+	orcc %r8, %r0, %r21	!coloca en el reg 21 el exponente que sera empaquetado 
+	addcc %r17, %r6, %r0	!identificacion del signo del op1
+	be op1nega		!salta si el signo del op1 es negativo
+	addcc %r17, %r7, %r0	!identificacion del signo del op2
+	be op2nega		!salta si el signo del op2 es negativo 
+		addcc %r14, -4, %r14
+		st %r15, %r14	
+		addcc %r14, -4, %r14
+		st %r10, %r14	
+		addcc %r14, -4, %r14
+		st %r11, %r14	
+	call sumnorma		!llamada a subrutina para hacer la suma y normalizarla
+		ld [%r14], %r18
+		addcc %r14, 4, %r14
+		ld [%r14], %r15
+		addcc %r14, 4, %r14
+		addcc %r14, -4, %r14
+		st %r15, %r14	
+	call empaque		!llamada a subrutina para empaquetar el numero
+		ld [%r14], %r15
+		addcc %r14, 4, %r14
+	jmpl %r15+4, %r0	!return 
+op1nega: 	orncc %r0, %r10, %r10	!mantiza del op1 en complemento a 1
+	addcc %r10, 1, %r10	!mantiza del op1 en complemento a 2
+	orcc %r16, %r10,%r10	!extencion de signo 
+	addcc %r17, %r7, %r0	!identificacion de signo del op2
+	be op2nega		!salta si el signo del op2 es negativo
+		addcc %r14, -4, %r14
+		st %r15, %r14	
+		addcc %r14, -4, %r14
+		st %r10, %r14	
+		addcc %r14, -4, %r14
+		st %r11, %r14	
+	call sumnorma		!llamada a subrutina para hacer la suma y normalizarla
+		ld [%r14], %r18
+		addcc %r14, 4, %r14
+		ld [%r14], %r15
+		addcc %r14, 4, %r14
+		addcc %r14, -4, %r14
+		st %r15, %r14	
+	call empaque		!llamada a subrutina para empaquetar el numero
+		ld [%r14], %r15
+		addcc %r14, 4, %r14
+        jmpl %r15+4, %r0	!return 
+op2nega: 	orncc %r0, %r11, %r11	!mantiza del op2 en complemento a 1
+	addcc %r11, 1, %r11	!mantiza del op2 en complemento a 2
+	orcc %r16, %r11, %r11 	!extencion de signo
+		addcc %r14, -4, %r14
+		st %r15, %r14	
+		addcc %r14, -4, %r14
+		st %r10, %r14	
+		addcc %r14, -4, %r14
+		st %r11, %r14	
+	call sumnorma		!llamada a subrutina para hacer la suma y normalizarla
+		ld [%r14], %r18
+		addcc %r14, 4, %r14
+		ld [%r14], %r15
+		addcc %r14, 4, %r14
+		addcc %r14, -4, %r14
+		st %r15, %r14	
+	call empaque		!llamada a subrutina para empaquetar el numero
+		ld [%r14], %r15
+		addcc %r14, 4, %r14
+	jmpl %r15+4, %r0	!return
+		ld [%r14], %r19
+		addcc %r14, 4, %r14
+		ld [%r14], %r20
+		addcc %r14, 4, %r14
+sumnorma: 	ld [identi], %r23	!carga el valor para identificar el bit implicito
+	ld [redon], %r24	!carga el valor para verificar la posicion del bit implicito
+	andcc %r0,%r22,%r22	!coloca un 0 en el registro 22
+	addcc %r19, %r20, %r25	!suma de mantizas
+	bneg negativo		!salta si es negativo
+	andcc %r0, %r28, %r28	!coloca un 0 en el registro 28
+verifica: 	andcc %r25,%r23,%r26	!localiza el bit implicito 
+	orncc %r0,%r26,%r26	!complemento a 1 del resultado anterior 
+	addcc %r26, 1, %r26	!complemnto a 2
+	addcc %r26, %r24, %r26	!resta para identificar si el bit implicito esta en su lugar
+	be salirder		!salta si esta normalizada 
+	addcc %r22, 1, %r22	!incrementa el valor del reg 22 para recorrer el exponente 
+	orncc %r0, %r22, %r27	!complemento a 1 del valor del reg 22
+	addcc %r27, 1, %r27	!complemento a 2 del valor del reg 22
+	addcc %r27, 8, %r27	!resta del reg 22 con 8, numero maximo de corrimientos
+	be menor		!salta si llego al numero maximo
+	srl %r25, 1, %r25	!recorre el resultado de la suma 
+	ba verifica		!salta y vuelve a verificar
+	jmpl %r15+4, %r0	!return
+negativo: 	orncc %r0,%r25,%r25	!complemento a 1 del resultado de la suma
+	addcc %r25, 1, %r25	!complemento a 2 del resultado de la suma
+	ld [resn], %r28		!carga el valor del signo en el reg 28
+	ba verifica		!verifica si esta normalizado
+menor: 	andcc %r0,%r22,%r22	!coloca un 0 en el reg 22
+	addcc %r19,%r20,%r25	!suma las mantizas
+verifica1: 	andcc %r25,%r23,%r26	!localiza el bit implicito
+	orncc %r0,%r26,%r26	!complemento a 1 del resultado anterior
+	addcc %r26, 1, %r26	!complemento a 2 del resultado anterior
+	addcc %r26, %r24,%r26	!resta para identificar si el bit implicito esta en su lugar
+	be salirizq		!salta si ya esta normalizado
+	addcc %r22, 1, %r22	!incremento el valor del reg 22
+	addcc %r25, %r25, %r25	!corrimiento a la izquierda del resultado
+	ba verifica1		!salta y vuelve a verificar
+	jmpl %r15+4, %r0	!return
+		addcc %r14, -4, %r14
+		st %r25, %r14	
+salirder: 	addcc %r21, %r22, %r21	!normaliza el exponente
+	jmpl %r15+4, %r0	!return
+		addcc %r14, -4, %r14
+		st %r25, %r14	
+salirizq: 	orncc %r0, %r22, %r22	!complemento a 1 del reg 22
+	addcc %r22, 1, %r22	!complemento a 2 del reg 22
+	addcc %r21, %r22, %r21	!normaliza el exponente
+	jmpl %r15+4, %r0	!return
+empaque: 	andcc %r0, %r22, %r22	!cargar un 0 en el reg 22
+	orcc %r22, 24, %r22	!cargar un 24 en el reg 22
+	orncc %r0, %r22, %r22	!complemento a 1 del 24
+	addcc %r22, 1, %r22	!complemento a 2 del 24
+	ba prueba		!inicio del ciclo
+si:	addcc %r21, %r21, %r21	!corrimiento del exponente a la izq
+prueba:	addcc %r22, 1, %r22	!condicion
+	bneg si			!salto al inicio del ciclo
+	orcc %r28, %r21, %r28	!union del signo con el exponente
+	andcc %r18, %r4, %r18	!extraccion de la mantiza resultante de la suma
+	orcc %r28, %r18, %r28	!union del signo, exponente y mantiza. Numero empaquetado
+	st %r28, [z]		!carga en la memoria el numero empaquetado
+	jmpl %r15+4, %r0	!return
+	x: 0x3F800000
+	y: 0x3F800000
+	z: 0
+	mase: 0x7F800000
+	masm: 0x007FFFFF
+	biti: 0x00800000
+	sig: 0xFFFFFFFF
+	nega: 0xFF000000
+	identi: 0x01800000
+	redon: 0x00800000
+	resn: 0x80000000
+	stack: 0  	
