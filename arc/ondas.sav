@@ -1,0 +1,36 @@
+[*]
+[*] GTKWave Analyzer v3.3.72 (w)1999-2016 BSI
+[*] Thu Mar 30 06:05:46 2017
+[*]
+[dumpfile] "/home/alejandra/17-I/arquitectura/arc/tb_rutadatos.vcd"
+[dumpfile_mtime] "Thu Mar 30 06:03:17 2017"
+[dumpfile_size] 8034
+[savefile] "/home/alejandra/17-I/arquitectura/arc/ondas.sav"
+[timestart] 0
+[size] 1366 704
+[pos] -39 -39
+*-25.331005 40000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 229
+[signals_width] 158
+[sst_expanded] 1
+[sst_vpaned_height] 175
+@29
+botonclk
+botona[5:0]
+botonamux
+botonb[5:0]
+botonbmux
+botonc[5:0]
+botoncmux
+botondatom[31:0]
+botonf[3:0]
+botonrdm
+ledbit13
+ledcc[3:0]
+leddir[31:0]
+ledop3[5:0]
+ledop[1:0]
+ledsalm[31:0]
+ledsetcc
+[pattern_trace] 1
+[pattern_trace] 0
